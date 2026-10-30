@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>2048 — Jogos do Etbonito</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#17151f;color:#fff;font-family:system-ui,Arial,sans-serif;display:flex;justify-content:center;padding:22px 12px}.app{width:min(100%,430px)}h1{margin:0;color:#ff8a24;font-size:42px}.sub{color:#c9c5d2;margin:4px 0 18px}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}.score{background:#292533;padding:8px 12px;border-radius:12px;text-align:center}.score small{display:block;color:#b8b2c4}.score b{font-size:20px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:16px 0}.btn{border:0;background:#ff8a24;color:#201326;font-weight:800;padding:11px 14px;border-radius:10px;font-size:15px}.board{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;background:#292533;padding:9px;border-radius:14px;touch-action:none}.cell{aspect-ratio:1;background:#3a3545;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(22px,7vw,34px);color:#fff}.v2{background:#eee4da;color:#453d36}.v4{background:#ede0c8;color:#453d36}.v8{background:#f2a65a}.v16{background:#f38346}.v32{background:#f06a48}.v64{background:#e94d35}.v128,.v256,.v512{background:#eacb50;color:#30252a;font-size:clamp(19px,5vw,28px)}.v1024,.v2048{background:#f8df78;color:#30252a;font-size:clamp(16px,4.5vw,24px)}.help{color:#c9c5d2;line-height:1.5;margin-top:16px;font-size:14px}
+</style>
+</head>
+<body><main class="app">
+<div class="top"><div><h1>2048</h1><div class="sub">Jogos do Etbonito</div></div><div class="score"><small>PONTOS</small><b id="score">0</b></div><div class="score"><small>RECORDE</small><b id="best">0</b></div></div>
+<div class="row"><span>Junte os números até chegar a 2048!</span><button class="btn" id="new">Novo jogo</button></div>
+<div class="board" id="board" aria-label="Tabuleiro do jogo"></div>
+<p class="help">Deslize o dedo no tabuleiro para mover as peças ou use as setas do teclado. Funciona sem internet e salva seu recorde neste aparelho.</p>
+</main>
+<script>
+const board=document.getElementById('board'),scoreEl=document.getElementById('score'),bestEl=document.getElementById('best');
+let grid,score=0,best=Number(localStorage.getItem('etbonito2048best')||0),startX=0,startY=0;
+bestEl.textContent=best;
+function empty(){return Array.from({length:4},()=>Array(4).fill(0))}
+function spawn(){let spots=[];grid.forEach((r,y)=>r.forEach((v,x)=>{if(!v)spots.push([y,x])}));if(spots.length){let [y,x]=spots[Math.floor(Math.random()*spots.length)];grid[y][x]=Math.random()<.9?2:4}}
+function draw(){board.innerHTML='';grid.flat().forEach(v=>{let c=document.createElement('div');c.className='cell'+(v?' v'+v:'');c.textContent=v||'';board.appendChild(c)});scoreEl.textContent=score;bestEl.textContent=best}
+function reset(){grid=empty();score=0;spawn();spawn();draw()}
+function move(dir){
+ const before=JSON.stringify(grid),oldScore=score;
+ for(let i=0;i<4;i++){
+  let line=[];
+  for(let j=0;j<4;j++){let y=dir==='up'?j:dir==='down'?3-j:i,x=dir==='left'?j:dir==='right'?3-j:i;line.push(grid[y][x])}
+  let vals=line.filter(Boolean),out=[];
+  for(let k=0;k<vals.length;k++){if(vals[k]===vals[k+1]){out.push(vals[k]*2);score+=vals[k]*2;k++}else out.push(vals[k])}
+  while(out.length<4)out.push(0);
+  for(let j=0;j<4;j++){let y=dir==='up'?j:dir==='down'?3-j:i,x=dir==='left'?j:dir==='right'?3-j:i;grid[y][x]=out[j]}
+ }
+ if(JSON.stringify(grid)!==before){
+  if(score>best){best=score;localStorage.setItem('etbonito2048best',best)}
+  spawn();draw();
+  if(!grid.some(r=>r.includes(0))&&!canMove())setTimeout(()=>alert('Fim de jogo! Toque em “Novo jogo” para tentar novamente.'),100)
+ } else score=oldScore;
+}
+function canMove(){for(let y=0;y<4;y++)for(let x=0;x<4;x++)if((x<3&&grid[y][x]===grid[y][x+1])||(y<3&&grid[y][x]===grid[y+1][x]))return true;return false}
+document.addEventListener('keydown',e=>{let d={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];if(d){e.preventDefault();move(d)}});
+board.addEventListener('touchstart',e=>{startX=e.changedTouches[0].clientX;startY=e.changedTouches[0].clientY},{passive:true});
+board.addEventListener('touchend',e=>{let dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;move(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'))},{passive:true});
+document.getElementById('new').addEventListener('click',reset);reset();
+</script></body></html>
